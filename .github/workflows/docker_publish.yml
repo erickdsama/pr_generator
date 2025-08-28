@@ -15,7 +15,7 @@ jobs:
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          username: erickdsama
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Set up Docker Buildx
@@ -27,4 +27,4 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/pr-description-bot:latest,${{ secrets.DOCKERHUB_USERNAME }}/pr-description-bot:${{ github.sha }}
+          tags: erickdsama/pr-description-bot:latest,erickdsama/pr-description-bot:${{ github.sha }}

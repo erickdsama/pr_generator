@@ -40,11 +40,22 @@ pr-description-bot/
 Add the following secrets to your GitHub repository (`Settings > Secrets and variables > Actions`):
 
 - `OPENAI_API_KEY`: Your OpenAI API key
-- `DOCKERHUB_USERNAME`: Your Docker Hub username
 - `DOCKERHUB_TOKEN`: Your Docker Hub access token (not password)
 
 ### 2. Local Development
 
+#### Option A: Using Docker (Recommended)
+1. Run the pre-built Docker image:
+```bash
+docker run --rm \
+  -e GITHUB_TOKEN="your_github_token" \
+  -e OPENAI_API_KEY="your_openai_api_key" \
+  -e GITHUB_REPOSITORY="owner/repo-name" \
+  -e PR_NUMBER="123" \
+  erickdsama/pr-description-bot:latest
+```
+
+#### Option B: Local Python Setup
 1. Clone the repository:
 ```bash
 git clone <your-repo-url>
@@ -84,7 +95,7 @@ docker run --rm \
   -e OPENAI_API_KEY="your_key" \
   -e GITHUB_REPOSITORY="owner/repo" \
   -e PR_NUMBER="123" \
-  pr-description-bot
+  erickdsama/pr-description-bot:latest
 ```
 
 ## How It Works
@@ -122,19 +133,38 @@ The generated description is automatically:
 
 ### Environment Variables
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `GITHUB_TOKEN` | GitHub API token | Yes |
-| `OPENAI_API_KEY` | OpenAI API key | Yes |
-| `GITHUB_REPOSITORY` | Repository name (owner/repo) | Yes |
-| `PR_NUMBER` | Pull request number | Yes |
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `GITHUB_TOKEN` | GitHub API token | Yes | - |
+| `OPENAI_API_KEY` | OpenAI API key | Yes | - |
+| `GITHUB_REPOSITORY` | Repository name (owner/repo) | Yes | - |
+| `PR_NUMBER` | Pull request number | Yes | - |
+| `MAX_FILE_SIZE` | Maximum file size in KB | No | 100 |
+| `MAX_PATCH_SIZE` | Maximum patch content in KB | No | 50 |
+| `MAX_TOTAL_CHANGES` | Maximum total changes in KB | No | 200 |
 
 ### OpenAI Configuration
 
 The bot uses the following OpenAI parameters:
-- **Engine**: `text-davinci-003`
+- **Engine**: `gpt-5-mini`
 - **Max Tokens**: 300
 - **Temperature**: 0.7
+
+### File Filtering Configuration
+
+The bot automatically filters out large files to optimize API usage and context:
+
+- **MAX_FILE_SIZE**: Maximum file size in KB (default: 100KB)
+- **MAX_PATCH_SIZE**: Maximum patch content in KB (default: 50KB)
+- **MAX_TOTAL_CHANGES**: Maximum total changes in KB (default: 200KB)
+
+**Automatically Ignored File Types:**
+- Binary files: `.exe`, `.dll`, `.so`, `.jar`, `.zip`, `.tar`
+- Media files: `.png`, `.jpg`, `.mp3`, `.mp4`, `.pdf`
+- Database files: `.db`, `.sqlite`, `.log`
+- Temporary files: `.tmp`, `.cache`, `.lock`
+
+You can override these limits by setting environment variables in your GitHub Actions workflow.
 
 ## Troubleshooting
 
