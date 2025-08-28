@@ -41,11 +41,122 @@ def get_pr_details(repo_token, repo_name, pr_number):
         print("repo", repo)
         pr = repo.get_pull(pr_number)
         print("pr", pr)
-        # Get PR Diff
-        diff = pr.get_files()
+        # Get PR Diff with file filtering
+        diff = list(pr.get_files())  # Convert PaginatedList to regular list
         diff_text = ""
+        total_changes = 0
+        ignored_files = []
+
+        # Configuration: Adjust these values to control file filtering
+        # File size limits (in bytes) - can be overridden via environment variables
+        MAX_FILE_SIZE = int(os.getenv("MAX_FILE_SIZE", "100")) * 1024  # Default: 100KB
+        MAX_PATCH_SIZE = (
+            int(os.getenv("MAX_PATCH_SIZE", "50")) * 1024
+        )  # Default: 50KB patch content
+        MAX_TOTAL_CHANGES = (
+            int(os.getenv("MAX_TOTAL_CHANGES", "200")) * 1024
+        )  # Default: 200KB total
+
+        # File types to always ignore (usually large binary files)
+        IGNORED_EXTENSIONS = {
+            ".bin",
+            ".exe",
+            ".dll",
+            ".so",
+            ".dylib",
+            ".jar",
+            ".war",
+            ".ear",
+            ".zip",
+            ".tar",
+            ".gz",
+            ".rar",
+            ".7z",
+            ".iso",
+            ".img",
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".gif",
+            ".bmp",
+            ".tiff",
+            ".svg",
+            ".mp3",
+            ".mp4",
+            ".avi",
+            ".mov",
+            ".wmv",
+            ".flv",
+            ".pdf",
+            ".doc",
+            ".docx",
+            ".xls",
+            ".xlsx",
+            ".ppt",
+            ".pptx",
+            ".db",
+            ".sqlite",
+            ".mdb",
+            ".accdb",
+            ".log",
+            ".tmp",
+            ".cache",
+            ".lock",
+        }
+
         for file in diff:
-            diff_text += f"File: {file.filename}\nPatch:\n{file.patch}\n\n"
+            file_size = file.changes or 0
+            patch_size = len(file.patch or "") if file.patch else 0
+
+            # Skip files with ignored extensions
+            file_ext = os.path.splitext(file.filename)[1].lower()
+            if file_ext in IGNORED_EXTENSIONS:
+                ignored_files.append(f"{file.filename} (ignored extension: {file_ext})")
+                continue
+
+            # Skip very large files or patches
+            if file_size > MAX_FILE_SIZE or patch_size > MAX_PATCH_SIZE:
+                ignored_files.append(
+                    f"{file.filename} (size: {file_size}, patch: {patch_size} bytes)"
+                )
+                continue
+
+            # Check if adding this file would exceed total limit
+            if total_changes + patch_size > MAX_TOTAL_CHANGES:
+                ignored_files.append(f"{file.filename} (would exceed total limit)")
+                continue
+
+            # Add file info and patch
+            diff_text += f"File: {file.filename}\n"
+            diff_text += f"Status: {file.status}\n"
+            diff_text += f"Changes: +{file.additions} -{file.deletions}\n"
+            if file.patch:
+                diff_text += f"Patch:\n{file.patch}\n"
+            diff_text += "\n"
+
+            total_changes += patch_size
+
+        # Add summary of ignored files
+        if ignored_files:
+            diff_text += f"\n--- IGNORED LARGE FILES ---\n"
+            diff_text += f"Total ignored: {len(ignored_files)}\n"
+            diff_text += f"Files ignored due to size limits:\n"
+            for ignored in ignored_files[:10]:  # Limit to first 10 ignored files
+                diff_text += f"- {ignored}\n"
+            if len(ignored_files) > 10:
+                diff_text += f"... and {len(ignored_files) - 10} more files\n"
+
+        print(f"Total changes included: {total_changes} bytes")
+        print(f"Files ignored: {len(ignored_files)}")
+        print(f"Files processed: {len(diff) - len(ignored_files)}")
+
+        # Add summary at the beginning of diff_text
+        summary = f"--- PR ANALYSIS SUMMARY ---\n"
+        summary += f"Total files in PR: {len(diff)}\n"
+        summary += f"Files included: {len(diff) - len(ignored_files)}\n"
+        summary += f"Files ignored: {len(ignored_files)}\n"
+        summary += f"Total changes: {total_changes} bytes\n\n"
+        diff_text = summary + diff_text
 
         # Get Commit Messages
         commits = pr.get_commits()
