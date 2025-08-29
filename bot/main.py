@@ -41,6 +41,30 @@ def get_pr_details(repo_token, repo_name, pr_number):
         print("repo", repo)
         pr = repo.get_pull(pr_number)
         print("pr", pr)
+
+        # Try to get the repository's PR template
+        pr_template = ""
+        try:
+            template_content = repo.get_contents(".github/pull_request_template.md")
+            pr_template = template_content.decoded_content.decode("utf-8")
+            print("✅ Found PR template in repository")
+        except Exception as template_error:
+            print(f"⚠️  No PR template found: {template_error}")
+            # Fallback to a basic template
+            pr_template = """## Description
+
+## Type of change
+- [ ] Bug fix (change which fixes an issue)
+- [ ] New feature (change which adds functionality)
+- [ ] Breaking change (would cause existing functionality to not work as expected)
+
+## How Has This Been Tested?
+
+## Checklist
+- [ ] I have updated documentation if needed
+- [ ] My code follows the style guidelines
+- [ ] I have added necessary code tests"""
+
         # Get PR Diff with file filtering
         diff = list(pr.get_files())  # Convert PaginatedList to regular list
         diff_text = ""
@@ -162,13 +186,13 @@ def get_pr_details(repo_token, repo_name, pr_number):
         commits = pr.get_commits()
         commit_messages = "\n".join([commit.commit.message for commit in commits])
 
-        return pr, pr.title, diff_text, commit_messages
+        return pr, pr.title, diff_text, commit_messages, pr_template
     except Exception as e:
         print(f"Error fetching PR details: {e}")
         sys.exit(1)
 
 
-def generate_description(api_key, title, diff, commits):
+def generate_description(api_key, title, diff, commits, template):
     """Generates a PR description using OpenAI."""
     client = OpenAI(
         # This is the default and can be omitted
@@ -186,13 +210,18 @@ def generate_description(api_key, title, diff, commits):
     **File Diffs:**
     {diff}
 
-    **Generated PR Description:**
-    ALWAYS USE THIS TEMPLATE TO GENERATE THE PR DESCRIPTION:
-    {template_md_pr}
+    **Repository PR Template:**
+    {template}
+
+    **Instructions:**
+    Use the repository's PR template above to generate the description.
+    Fill in the template sections based on the changes in the PR.
+    If the template has checkboxes, check the appropriate ones based on the changes.
+    Keep the same structure and formatting as the template.
     """
     try:
         response = client.chat.completions.create(
-            model="gpt-5-mini",
+            model="gpt-5-nano",
             messages=[
                 {
                     "role": "system",
@@ -230,8 +259,10 @@ if __name__ == "__main__":
         print("One or more environment variables are missing.")
         sys.exit(1)
 
-    pr_instance, pr_title, pr_diff, pr_commits = get_pr_details(
+    pr_instance, pr_title, pr_diff, pr_commits, pr_template = get_pr_details(
         GITHUB_TOKEN, GITHUB_REPOSITORY, PR_NUMBER
     )
-    generated_text = generate_description(OPENAI_API_KEY, pr_title, pr_diff, pr_commits)
+    generated_text = generate_description(
+        OPENAI_API_KEY, pr_title, pr_diff, pr_commits, pr_template
+    )
     update_pr_description(pr_instance, generated_text)
