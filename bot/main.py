@@ -211,12 +211,13 @@ def generate_description(api_key, title, diff, commits, template):
     """
     try:
         response = client.chat.completions.create(
-            model="gpt-5-nano",
+            model="gpt-5-mini",
             messages=[
                 {
                     "role": "system",
-                    "content": "You are TechLead, you are a senior software engineer and you are a great PR"
-                    "description writer. You are given a PR title, commit messages, and file diffs. "
+                    "content": "You are TechLead, you are a senior software engineer and you are a great PR "
+                    "description writer Follow the structure of the PR template. "
+                    "You are given a PR title, commit messages, a PR template and file diffs. "
                     "You are to generate a PR description that is concise and clear. alwatys use markdown format.",
                 },
                 {"role": "user", "content": prompt},
