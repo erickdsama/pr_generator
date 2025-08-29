@@ -98,6 +98,30 @@ docker run --rm \
   erickdsama/pr-description-bot:latest
 ```
 
+### 4. Creating a PR Template
+
+To get the best results from the bot, create a `.github/pull_request_template.md` file in your repository:
+
+```markdown
+## Description
+Brief description of the changes
+
+## Type of change
+- [ ] Bug fix (change which fixes an issue)
+- [ ] New feature (change which adds functionality)
+- [ ] Breaking change (would cause existing functionality to not work as expected)
+
+## How Has This Been Tested?
+Describe the tests you ran
+
+## Checklist
+- [ ] I have updated documentation if needed
+- [ ] My code follows the style guidelines
+- [ ] I have added necessary code tests
+```
+
+The bot will automatically detect and use this template to generate structured PR descriptions.
+
 ## How It Works
 
 ### 1. PR Analysis
@@ -146,9 +170,17 @@ The generated description is automatically:
 ### OpenAI Configuration
 
 The bot uses the following OpenAI parameters:
-- **Engine**: `gpt-5-mini`
+- **Engine**: `gpt-5-nano`
 - **Max Tokens**: 300
 - **Temperature**: 0.7
+
+### PR Template Integration
+
+The bot automatically reads the repository's pull request template from `.github/pull_request_template.md` and uses it to generate structured descriptions. If no template is found, it falls back to a basic default template.
+
+**Template Detection Priority:**
+1. `.github/pull_request_template.md` in the target repository
+2. Fallback to basic template if none exists
 
 ### File Filtering Configuration
 
