@@ -50,20 +50,10 @@ def get_pr_details(repo_token, repo_name, pr_number):
             print("✅ Found PR template in repository")
         except Exception as template_error:
             print(f"⚠️  No PR template found: {template_error}")
-            # Fallback to a basic template
-            pr_template = """## Description
-
-## Type of change
-- [ ] Bug fix (change which fixes an issue)
-- [ ] New feature (change which adds functionality)
-- [ ] Breaking change (would cause existing functionality to not work as expected)
-
-## How Has This Been Tested?
-
-## Checklist
-- [ ] I have updated documentation if needed
-- [ ] My code follows the style guidelines
-- [ ] I have added necessary code tests"""
+            # open local template
+            with open("pull_request_template.md", "r") as file:
+                pr_template = file.read()
+            print("✅ Found PR template in local file")
 
         # Get PR Diff with file filtering
         diff = list(pr.get_files())  # Convert PaginatedList to regular list
